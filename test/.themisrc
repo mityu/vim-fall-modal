@@ -1,0 +1,15 @@
+" vim: filetype=vim:
+
+let s:assert = themis#helper('assert')
+
+function SessionNew() abort
+  call fall_modal#session#new_session()
+endfunction
+
+function SessionExit() abort
+  call fall_modal#session#exit_session()
+  call s:assert.true(fall_modal#session#is_empty())
+endfunction
+
+command SessionNew call SessionNew()
+command SessionExit call SessionExit()

@@ -1,0 +1,31 @@
+let s:assert = themis#helper('assert')
+call themis#helper('command').with(s:assert)
+call themis#func_alias(s:assert)
+
+Describe mapping#
+  Before all
+    call fall_modal#mapping#setup()
+  End
+
+  Context clear()
+    Before each
+      cmapclear
+      cnoremap <Plug>(fall-map1) <Nop>
+      cnoremap <C-l> <Nop>
+      cnoremap @ <Nop>
+      SessionNew
+    End
+
+    After all
+      SessionExit
+      cmapclear
+    End
+
+    It cleans mappings, but except for those who starts with "<Plug>(fall-".
+      call fall_modal#mapping#clear()
+      const maps = maplist()->filter({ _, m -> m.mode ==# 'c' })->map({ _, m -> m.lhs })
+      Assert Equals(maps, ['<Plug>(fall-map1)'])
+    End
+
+  End
+End

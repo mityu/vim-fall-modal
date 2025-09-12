@@ -1,0 +1,244 @@
+*fall-modal.txt*	Add modal editing functionality to fall.vim
+
+Author: mityu <mityu.mail@gmail.com>
+License: MIT License (See LICENSE file)
+
+==============================================================================
+CONTENTS						*fall-modal-contents*
+
+INTRODUCTION					|fall-modal-introduction|
+INTERFACE					|fall-modal-interface|
+  FUNCTION					|fall-modal-function|
+  AUTOCMD					|fall-modal-autocmd|
+DEFAULT-CONIFG					|fall-modal-default-config|
+EXAMPLE						|fall-modal-example|
+
+
+==============================================================================
+INTRODUCTION					*fall-modal-introduction*
+
+*fall-modal.vim* is a utility plugin to build modal operation functionality on
+|fall.vim|.
+For example, you can define two modes where you can do the following things
+in each mode:
+- use j/k to navigate list items, <CR> to accept item, etc...
+- edit filter text prompt
+
+==============================================================================
+REQUIREMENTS					*fall-modal-requirements*
+
+Since |fall-modal.vim| is a utility plugin on top of |fall.vim|, you need to
+prepare |fall.vim| environment first.
+This plugin supposed to work everywhere |fall.vim| works.
+
+- fall.vim: https://github.com/vim-fall/fall.vim
+
+==============================================================================
+INTERFACE					*fall-modal-interface*
+
+------------------------------------------------------------------------------
+FUNCTION					*fall-modal-function*
+
+					*fall_modal#mode#define()*
+fall_modal#mode#define({modes})
+	Define modes.  {modes} is a list consist of mode name string.  You
+	have to call this while setup phase of |fall-modal.vim| to introduce
+	modal editing feature to |fall.vim|, except for when you use
+	|fall-modal-default-config|.
+	Example: >vim
+	  call fall_modal#mode#define(['normal', 'insert'])
+<
+
+					*fall_modal#default#setup()*
+fall_modal#default#setup()
+	Setup the built-in default configuration.
+	See |fall-modal-default-config| for what are prepared.
+
+The following functions are utility functions to control state of |fall.vim|
+and |fall-modal.vim|.  Only available while |fall.vim| is active.
+
+					*fall_modal#mapping#clear()*
+fall_modal#mapping#clear()
+	Clear the current mappings, but except for those who starts with
+	"<Plug>(fall-".
+
+					*fall_modal#mode#change_mode()*
+fall_modal#mode#change_mode({mode})
+	Change the current mode to {mode} and triggers |FallModalModeChanged|
+	event.  {mode} must be one of the {modes}, which is passed to
+	|fall_modal#mode#define()|.
+	Example: >vim
+	  call fall_modal#mode#change_mode('insert')
+<
+
+					*fall_modal#input#push_prompt()*
+fall_modal#input#push_prompt()
+	Save current prompt in undo history.
+
+					*fall_modal#input#undo_prompt()*
+fall_modal#input#undo_prompt()
+	Restore prompt using the lastly pushed prompt state.
+
+					*fall_modal#input#redo_prompt()*
+fall_modal#input#redo_prompt()
+	Cancel the last undo operation of prompt by
+	|fall_modal#input#undo_prompt()|.
+
+				*fall_modal#input#set_ignore_unmapped_keys()*
+fall_modal#input#set_ignore_unmapped_keys({enable})
+	Change the way how typed keys are handled.
+	If {enable} is true, keys that are not mapped will be thrown away.
+	Otherwise, no key is thrown away and every key is processed as usual.
+	Usually user will call this function on |FallModalModeChanged| event.
+
+				*fall_modal#cursor#set_cursor_visible()*
+fall_modal#cursor#set_cursor_visible({enable})
+	Change the visibility of the cursor on the |fall.vim| prompt.
+	If {enable} is true, the cursor will be visible.  Otherwise, the
+	cursor will disappear.
+	Usually user will call this function on |FallModalModeChanged| event.
+
+------------------------------------------------------------------------------
+AUTOCMD						*fall-modal-autocmd*
+
+|fall-modal.vim| provides some |User| auto-commands for configuration.
+
+						*FallModalSetup*
+FallModalSetup
+	Invoked once at the first run of |fall-modal.vim|.  You can use this
+	for initial configuration of |fall-modal.vim|.
+
+						*FallModalModeChanged*
+FallModalModeChanged:{mode}
+	Invoked when mode is changed by calls of
+	|fall_modal#mode#change_mode()|.
+	{mode} will be the argument of |fall_modal#mode#change_mode()|.
+
+						*FallModalEnterPrompt*
+FallModalEnterPrompt:{picker-name}
+	Similar to |FallPickerEnter|, but after setup of this plugin and
+	entering command-line.
+	{picker-name} will be the current picker name.  This is same for the
+	{name} of "FallPickerEnter:{name}" (|FallPickerEnter|).
+
+FallModalDefaultSetupPost
+	Invoked once just after the initialization steps of default
+	configuration |fall-modal-default-config|.
+	Only invoked when the default configuration is enabled by
+	|fall_modal#default#setup()|.
+
+FallModalDefaultConfigPost:{mode}
+	Only invoked when the default configuration is enabled by
+	|fall_modal#default#setup()|.
+
+==============================================================================
+DEFAULT-CONIFG					*fall-modal-default-config*
+
+|fall-modal.vim| provides a built-in default configurations, and it can be
+enabled by |fall_modal#default#setup()| function.
+Here is the list of what is provided by the default configuration.
+
+Mode~
+There are two modes are defined.
+- "normal"
+ 	Corresponds to the normal mode.  This is the default mode i.e.
+	|fall-modal.vim| will be the "normal" mode when you launch |fall.vim|.
+	The cursor is hidden and unmapped keys are ignored.
+	(See |fall_modal#cursor#set_cursor_visible()| and
+	|fall_modal#input#set_ignore_unmapped_keys()|.)
+
+- "insert"
+ 	Corresponds to the insert mode.
+	The cursor is visible, and unmapped keys are also processed as usual.
+	(See |fall_modal#cursor#set_cursor_visible()| and
+	|fall_modal#input#set_ignore_unmapped_keys()|.)
+
+Mappings~
+Some mappings are defined for each mode.
+- "normal" mode:
+	Key	Description~
+	----	-----------------------------~
+	q	Quit |fall.vim|.
+	i	Change mode to "insert".
+	j	|<Plug>(fall-list-next)|
+	k	|<Plug>(fall-list-prev)|
+	gg	|<Plug>(fall-list-first)|
+	G	|<Plug>(fall-list-last)|
+	<CR>	Accept item and apply default action to the item.
+	a	|<Plug>(fall-action-select)|
+	m	|<Plug>(fall-select)|
+	*	|<Plug>(fall-select-all)|
+	?	|<Plug>(fall-help)|
+	<C-n>	|<Plug>(fall-preview-next:scroll)|
+	<C-p>	|<Plug>(fall-preview-prev:scroll)|
+	u	Undo prompt.  |fall_modal#input#undo_prompt()|
+	<C-r>	Redo prompt.  |fall_modal#input#redo_prompt()|
+
+- "insert" mode:
+	Key	Description~
+	----	-----------------------------~
+	<ESC>	Change mode to "normal".
+	<CR>	Change mode to "normal".
+	<C-c>	Change mode to "normal" with discarding prompt changes.
+	<C-n>	|<Plug>(fall-list-next)|
+	<C-p>	|<Plug>(fall-list-prev)|
+
+After these configurations are done, |FallModalDefaultConfigPost| autocmd will
+be fired.  You can apply additional configurations on this event.
+
+==============================================================================
+EXAMPLE						*fall-modal-example*
+
+Here are some example configurations.  Write those in your .vimrc.
+
+------------------------------------------------------------------------------
+Enable |fall-modal-default-config|.
+>vim
+	augroup vimrc-fall-modal
+	  autocmd!
+	  autocmd User FallModalSetup call fall_modal#default#setup()
+	augroup END
+<
+------------------------------------------------------------------------------
+Set additional mappings for the "normal" mode defined by
+|fall-modal-default-config|.
+>vim
+	augroup vimrc-fall-modal
+	  autocmd!
+	  autocmd User FallModalSetup call fall_modal#default#setup()
+	  autocmd User FallModalDefaultConfigPost:insert
+	    \ call s:fall_modal_insert_mode_config()
+	augroup END
+
+	function s:fall_modal_insert_mode_config() abort
+	  " Use <C-f>/<C-b> to move cursor like Emacs.
+	  cnoremap <C-f> <Right>
+	  cnoremap <C-b> <Left>
+	endfunction
+<
+------------------------------------------------------------------------------
+Start with "insert" mode for specific pickers.
+>vim
+	augroup vimrc-fall-modal
+	  autocmd!
+	  autocmd User FallModalSetup call fall_modal#default#setup()
+	  autocmd User FallModalEnterPrompt:*
+	    \ call s:fall_modal_on_enter_prompt(expand('<amatch>'))
+	augroup END
+	
+	function s:fall_modal_on_enter_prompt(amatch) abort
+	  const picker = matchstr(a:amatch, '^FallModalEnterPrompt:\zs.*$')
+
+	  " Start "insert" mode automatically when the picker does live-grep.
+	  if index(['grep', 'git-grep', 'rg'], picker) != -1
+	    call fall_modal#mode#change_mode('insert')
+	  endif
+	endfunction
+<
+------------------------------------------------------------------------------
+Also you can check: ../autoload/fall_modal/default.vim (type |gf| to open the
+file).  This is the implementation of the |fall-modal-default-config|, in
+other words, this is a concrete working example.
+
+==============================================================================
+vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl

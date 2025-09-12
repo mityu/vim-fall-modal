@@ -1,0 +1,174 @@
+let s:assert = themis#helper('assert')
+call themis#helper('command').with(s:assert)
+call themis#func_alias(s:assert)
+
+let s:nop = { -> 0 }
+let s:callbacks = {
+  \ 'initialize': s:nop,
+  \ 'resume': s:nop,
+  \ 'finalize': s:nop,
+  \ }
+let g:GetCurrentSession = v:null
+
+Describe session#
+  Before all
+    let opts = {}
+    for k in keys(s:callbacks)
+      let opts[k] = funcref({ cb, k, data -> cb[k](data) }, [s:callbacks, k])
+    endfor
+
+    let g:GetCurrentSession = fall_modal#session#register({
+      \ 'userdata': [],
+      \ }, opts)
+  End
+
+  Before each
+    for k in keys(s:callbacks)
+      let s:callbacks[k] = s:nop
+    endfor
+  End
+
+  After each
+    while !fall_modal#session#is_empty()
+      call fall_modal#session#exit_session()
+    endwhile
+  End
+
+  After all
+    unlet g:GetCurrentSession
+    unlet s:callbacks
+    unlet s:nop
+  End
+
+  Context new_session()
+    It calls initializer callback before adding new session to session list.
+      let s:callbacks.initialize = { _data -> s:assert.true(fall_modal#session#is_empty()) }
+      call fall_modal#session#new_session()
+      Assert False(fall_modal#session#is_empty())
+    End
+
+    It only calls initializer callback.
+      let logs = s:callbacks->copy()->map({ -> [] })
+      for k in keys(s:callbacks)
+        let s:callbacks[k] =
+          \ funcref({ stack, k, _data -> add(stack[k], $'{k} is called') }, [logs, k])
+      endfor
+
+      call fall_modal#session#new_session()
+
+      Assert Equals(logs.initialize, ['initialize is called'])
+      Assert Equals(logs.resume, [])
+      Assert Equals(logs.finalize, [])
+    End
+
+    It's session data can be retrived later.
+      call fall_modal#session#new_session()
+      Assert Equals(call(g:GetCurrentSession, []), {'userdata': []})
+    End
+
+    It's initializer callback can modify data.
+      let s:callbacks.initialize = { data -> add(data.userdata, 'initializer') }
+      call fall_modal#session#new_session()
+      Assert Equals(g:GetCurrentSession().userdata, ['initializer'])
+    End
+
+  End
+
+  Context session data
+    It can be modified.
+      call fall_modal#session#new_session()
+      let data = g:GetCurrentSession()
+      let data.userdata = ['xxx']
+
+      Assert Equals(g:GetCurrentSession(), {'userdata': ['xxx']})
+    End
+
+    It are independent between sessions.
+      let s:callbacks.initialize = { data -> add(data.userdata, 'a') }
+      call fall_modal#session#new_session()
+      Assert Equals(g:GetCurrentSession().userdata, ['a'])
+
+      let s:callbacks.initialize = { data -> add(data.userdata, 'b') }
+      call fall_modal#session#new_session()
+      Assert Equals(g:GetCurrentSession().userdata, ['b'])
+
+      call fall_modal#session#exit_session()
+      Assert Equals(g:GetCurrentSession().userdata, ['a'])
+    End
+
+  End
+
+  It manages sessions in LIFO style.
+    let Fn = { id, data -> add(data.userdata, id) }
+
+    let s:callbacks.initialize = funcref(Fn, [1])
+    call fall_modal#session#new_session()
+    let s:callbacks.initialize = funcref(Fn, [2])
+    call fall_modal#session#new_session()
+    let s:callbacks.initialize = funcref(Fn, [3])
+    call fall_modal#session#new_session()
+
+    Assert Equals(g:GetCurrentSession().userdata, [3])
+    call fall_modal#session#exit_session()
+    Assert Equals(g:GetCurrentSession().userdata, [2])
+    call fall_modal#session#exit_session()
+    Assert Equals(g:GetCurrentSession().userdata, [1])
+    call fall_modal#session#exit_session()
+  End
+
+  Context exit_session()
+    It only calls finalizer callback when it's the last session.
+      let logs = s:callbacks->copy()->map({ -> [] })
+      for k in keys(s:callbacks)
+        let s:callbacks[k] =
+          \ funcref({ stack, k, _data -> add(stack[k], $'{k} is called') }, [logs, k])
+      endfor
+
+      call fall_modal#session#new_session()
+      call fall_modal#session#exit_session()
+
+      Assert Equals(logs.resume, [])
+      Assert Equals(logs.finalize, ['finalize is called'])
+    End
+
+    It also calls resumer callback when there're some sessions left.
+      let logs = s:callbacks->copy()->map({ -> [] })
+      for k in keys(s:callbacks)
+        let s:callbacks[k] =
+          \ funcref({ stack, k, _data -> add(stack[k], $'{k} is called') }, [logs, k])
+      endfor
+
+      call fall_modal#session#new_session()
+      call fall_modal#session#new_session()
+      call fall_modal#session#exit_session()
+
+      Assert Equals(logs.resume, ['resume is called'])
+      Assert Equals(logs.finalize, ['finalize is called'])
+    End
+
+    It calls finalizer callback after removeing the last session from sesion list.
+      let s:callbacks.finalize = { _data -> s:assert.true(fall_modal#session#is_empty()) }
+      call fall_modal#session#new_session()
+      call fall_modal#session#exit_session()
+      Assert True(fall_modal#session#is_empty())
+    End
+
+    It calls resumer callback with restored session data after removeing the previous session.
+      call fall_modal#session#new_session()
+      call add(g:GetCurrentSession().userdata, 1)
+
+      call fall_modal#session#new_session()
+      call add(g:GetCurrentSession().userdata, 2)
+
+      let s:callbacks.resume = { data -> [
+        \ s:assert.equals(data.userdata, [1]),
+        \ s:assert.equals(g:GetCurrentSession(), data),
+        \ ] }
+
+      call fall_modal#session#exit_session()
+      Assert False(fall_modal#session#is_empty())
+    End
+
+  End
+
+End
