@@ -23,7 +23,7 @@ function fall_modal#mode#change_mode(mode) abort
     echohl None
     return
   endif
-  execute $'doautocmd User FallModalModeChanged:{a:mode}'
+  call fall_modal#event#emit($'FallModalModeChanged:{a:mode}')
 endfunction
 
 function fall_modal#mode#define(modes) abort

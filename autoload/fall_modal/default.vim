@@ -11,7 +11,7 @@ function fall_modal#default#setup() abort
     autocmd User FallModalDefaultSetupPost silent
     autocmd User FallModalDefaultConfigPost:* silent
   augroup END
-  doautocmd User FallModalDefaultSetupPost
+  call fall_modal#event#emit('FallModalDefaultSetupPost')
 endfunction
 
 function s:setup_normal_mode() abort
@@ -33,7 +33,7 @@ function s:setup_normal_mode() abort
   cnoremap u <Cmd>call fall_modal#input#undo_prompt()<CR>
   cnoremap <C-r> <Cmd>call fall_modal#input#redo_prompt()<CR>
   cnoremap q <C-c>
-  doautocmd User FallModalDefaultConfigPost:normal
+  call fall_modal#event#emit('FallModalDefaultConfigPost:normal')
 endfunction
 
 function s:setup_insert_mode() abort
@@ -46,7 +46,7 @@ function s:setup_insert_mode() abort
   cnoremap <CR> <Cmd>call fall_modal#mode#change_mode('normal')<CR>
   cnoremap <C-n> <Plug>(fall-list-next)
   cnoremap <C-p> <Plug>(fall-list-prev)
-  doautocmd User FallModalDefaultConfigPost:insert
+  call fall_modal#event#emit('FallModalDefaultConfigPost:insert')
 endfunction
 
 function s:cancel_insert() abort

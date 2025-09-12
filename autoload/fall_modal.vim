@@ -10,7 +10,7 @@ function fall_modal#setup() abort
     autocmd User FallModalEnterPrompt:* silent
     autocmd User FallModalPickerLeave:* silent
   augroup END
-  execute 'doautocmd User FallModalSetup'
+  call fall_modal#event#emit('FallModalSetup')
 endfunction
 
 function fall_modal#enter() abort
@@ -24,7 +24,7 @@ function fall_modal#enter() abort
   if name !=# ''
     " Postpone FallModalEnterPrompt event on CmdlineEnter event because it
     " seems fall.vim's default mapping is defined after this event.
-    const cmd = $'doautocmd User FallModalEnterPrompt:{name}'
+    const cmd = $'call fall_modal#event#emit("FallModalEnterPrompt:{name}")'
     execute $'autocmd CmdlineEnter @ ++once {cmd}'
   endif
 endfunction
