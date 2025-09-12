@@ -39,7 +39,7 @@ if has('nvim')
 else
   " Same above.
   function s:get_highlight(name) abort
-    return hlget(a:name)
+    return hlget(a:name)[0]
   endfunction
 
   " Same above.
