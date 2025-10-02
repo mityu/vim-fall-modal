@@ -5,7 +5,8 @@ function s:get_current_prompt() abort
 endfunction
 
 function s:set_current_prompt(prompt) abort
-  " Discard CmdlineChanged event triggered by this 'setcmdline' function call.
+  " Discard CmdlineChanged event triggered by this 'setcmdline' function call
+  " temporally.
   augroup fall-modal-module-input
     autocmd!
     call call('setcmdline', a:prompt)
@@ -75,7 +76,6 @@ function s:throw_away_redo_stack() abort
 endfunction
 
 if has('nvim')
-  const s:ns_id = nvim_create_namespace('fall-modal-input')
   function fall_modal#input#set_ignore_unmapped_keys(enable) abort
     if a:enable
       lua << trim EOF
