@@ -28,7 +28,7 @@ jobs:
         download:
           - available
 
-    uses: mityu/workflow-run-vim-themis/.github/workflows/run-themis.yml@v20260116
+    uses: mityu/workflow-run-vim-themis/.github/workflows/run-themis.yml@v20260626
     with:
       vim_type: vim
       vim_version: ${{ matrix.vim_version }}
@@ -52,7 +52,7 @@ jobs:
         download:
           - available
 
-    uses: mityu/workflow-run-vim-themis/.github/workflows/run-themis.yml@v20260116
+    uses: mityu/workflow-run-vim-themis/.github/workflows/run-themis.yml@v20260626
     with:
       vim_type: neovim
       vim_version: ${{ matrix.vim_version }}
